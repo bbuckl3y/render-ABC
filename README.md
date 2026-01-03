@@ -28,4 +28,11 @@ Information about ABC notation and *abc2svg* is available at:
 - the [ABC standards v2.1 site](http://abcnotation.com/wiki/abc:standard:v2.1) (or the [v2.2 page](http://abcnotation.com/wiki/abc:standard:v2.2))
 - abc rendering - see [txtmus / abc2svg / abcm2ps documentation](http://moinejf.free.fr/abcm2ps-doc/index.html)
 
-The software is written in Python 3 (about v3.12). This means it can be used on PCs, Macs or Linux/UNIX.
+The software is written in Python 3 (about v3.12). This means it can be used on PCs, Macs or Linux/UNIX. My python programs use Python's argparse module so you can get simple help using:
+     python3 *prog*.py --help
+
+#abcextract
+
+The abcextract.py program extracts selected ABC tunes from an ABC library ... and create a new ABC library. This is meant to be used to created selected tunebooks from a larger ABC library.
+
+Create a MS Excel file. The first column is '-' separated Xids for the tunes you want in your tunebook.

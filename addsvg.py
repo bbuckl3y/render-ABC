@@ -22,7 +22,7 @@ import urllib.request
 
 import bs4
 
-import ABClib2
+import ABClib
 
 doc, body0, nblk = None, None, None
 x2page = {}
@@ -97,10 +97,10 @@ def addindex(iname, items, sort=True, breakat=[], nochords=False):
             xtag.string = xid+'.'
             a.append(xtag)
             stag = doc.new_tag('div')
-            stag.string = ABClib2.fixtitle(dn)
+            stag.string = ABClib.fixtitle(dn)
             a.append(stag)
         else:
-            dnstr = '<b>'+dn[0]+"</b><br/>\n"+", ".join(ABClib2.fixtitle(t) for t in dn[1:])
+            dnstr = '<b>'+dn[0]+"</b><br/>\n"+", ".join(ABClib.fixtitle(t) for t in dn[1:])
             x = bs4.BeautifulSoup("<div>"+dnstr+"</div>", 'lxml') 
             a.append(x.body.div)
         idxitm.append(a) # as in template and its CSS
@@ -208,7 +208,7 @@ def main():
     print("reading", fnsrc)
 
     # read the ABC file into a Songsets class
-    ss = ABClib2.Songsets(fnsrc)
+    ss = ABClib.Songsets(fnsrc)
     # print(len(ss.sets), "sets found.")
     abcs = tuple(ss.abcs()) # songlist rather than list of sets
     print(len(abcs), "songs/tunes in", len(ss.sets), "sets.")
@@ -263,8 +263,8 @@ def main():
         breakat = [x.strip() for x in args.titlesx.split(',')] if args.titlesx else []
         addindex("Titles", tuneindex, breakat=breakat) 
 
-    rgn = dict((g, n) for n, rg in enumerate(ABClib2.ABCsong.rgroups) for g in rg)
-    rgname = [', '.join(g) for g in ABClib2.ABCsong.rgroups]
+    rgn = dict((g, n) for n, rg in enumerate(ABClib.ABCsong.rgroups) for g in rg)
+    rgname = [', '.join(g) for g in ABClib.ABCsong.rgroups]
     if args.byrhythm or args.byrhythmx: 
         sx = [s for s in abcs if x.index]
         sx.sort(key=lambda s:(rgn[s.rhythmgroup()], s.title()))
