@@ -164,7 +164,7 @@ def main():
     xgrp.add_argument("-2", "--txtmus",  action='store_true', help="include txtmus javascipt")
     # p.add_argument("-s", '--style', type=argparse, help="CSS file to be included")
     p.add_argument("-f", "--template", default="abcsvg.htm", help="HTML template")
-    p.add_argument('file', required=True, help="name of ABC file")
+    p.add_argument('file', help="name of ABC file")
     args = p.parse_args(sys.argv[1:])
     
     # read an HTML file as the basis for the output
@@ -314,7 +314,7 @@ def main():
     # finishing up
     d, fn = os.path.split(args.file)
     bn, ext = os.path.splitext(fn)
-    target = args.output if args.output else os.path.join(d, bn+".idx.htm")
+    target = args.output if args.output else os.path.join(d, bn+".htm")
 
     # check for ABC scripts ...
     ssrcs = [z for z in (x.rsplit('/',1)[-1] for x in doc.head.find_all("script") if x.has_attr("src")) if any(z.startswith(fns) for fns in ['abc2svg', 'abcweb', 'tmcore', 'tmweb'])]
