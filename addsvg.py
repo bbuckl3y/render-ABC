@@ -5,9 +5,14 @@ ABC to HTML book using abc2svg - Javascript ABC to SVG software
 see http://moinejf.free.fr/
 
 Revised indexing 9/12/2025
-Fixed formating - December 2025
+Fixed formatting - Dec 2025 and Jan 2026
 
 @author: Bob Buckley
+
+to do:
+* title and front-matter files from command line so more generic templates can be provided
+* meta tag follows last meta tag or preceeds title tag in template
+* develop options for an optional *provenance* section at the end of the tune book 
 """
 
 # This code embeds image files so that we end up with a single HTML file.
@@ -159,7 +164,7 @@ def main():
     xgrp.add_argument("-2", "--txtmus",  action='store_true', help="include txtmus javascipt")
     # p.add_argument("-s", '--style', type=argparse, help="CSS file to be included")
     p.add_argument("-f", "--template", default="abcsvg.htm", help="HTML template")
-    p.add_argument('file', help="name of ABC file")
+    p.add_argument('file', required=True, help="name of ABC file")
     args = p.parse_args(sys.argv[1:])
     
     # read an HTML file as the basis for the output
