@@ -39,7 +39,7 @@ The software is written in Python 3 (about v3.12). This means it can be used on 
 
 #abcextract.py
 
-The abcextract.py program extracts selected ABC tunes from an ABC library ... and create a new ABC library. This is meant to be used to created selected tunebooks from a larger ABC library.
+The *abcextract.py* program extracts selected ABC tunes from an ABC library ... and create a new ABC library. This is meant to be used to created selected tunebooks from a larger ABC library.
 
 Reads a MS Excel file. The first column is '-' separated Xids for the tunes you want in your tunebook. Outputs a new ABC file with %%newpage and %%sep separators inserted appropriately for use with *abcsvg.py* above.
 
@@ -51,6 +51,7 @@ Note: load CSV files into MS Excel as separate data as just loading CSV can conv
 
 #To do
 
+- maybe, detect some selected *abc2svg* modules and preload them? e.g. the MIDI module and selected sound modules.
 - create examples with shell scripts (example templates, abc files (with ABC header)) in the examples folder/directory.
 - *abcextract.py* should work from either CSV of XLSX file 
 - embed HTML in ABC files - including image insertion - test does %%beginml work?

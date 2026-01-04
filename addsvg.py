@@ -10,6 +10,7 @@ Fixed formatting - Dec 2025 and Jan 2026
 @author: Bob Buckley
 
 to do:
+* always embed local files (e.g. local CSS) - they are not copied with the HTML output
 * title and front-matter files from command line so more generic templates can be provided
 * meta tag follows last meta tag or preceeds title tag in template
 * develop options for an optional *provenance* section at the end of the tune book 
@@ -121,15 +122,19 @@ def addindex(iname, items, sort=True, breakat=[], nochords=False):
 
     return
 
-def getsrc(src, mode="rt"):
+def getsrc(src, embed, mode="rt"):
     "get external src contents - filename or URL"
+    # always embed files - HTML may get moved and filenames won't work
     if os.path.isfile(src): # should use URL
         with open(src, mode=mode) as imgx:
             data = imgx.read()
-    elif any(src.startswith(s) for s in ["http://", "https://"]):
-        url = urllib.request.urlopen(src)
-        data = url.read().decode()
-    return data
+        return True, data
+    elif embed and any(src.startswith(s) for s in ["http://", "https://"]):
+        # url = urllib.request.urlopen(src)
+        with urllib.request.urlopen(src) as urlsrc:
+            data = urlsrc.read().decode()
+        return True, data
+    return False, None
        
 def main():
     """
@@ -350,52 +355,58 @@ def main():
         print("Bad abc2svg or txtmus - js scripts:", [z for z in (x.rsplit('/',1)[-1] for x in doc.head.find_all("script") if x.has_attr("src"))])
         exit(1)
 
-    if args.embed:
-        print("look for embedding files *********************************************")
-        # embed image files before output is done.
-        for img in (x for x in doc.body.find_all("img") if 'src' in x.attrs):
-            if "src" in img.attrs:
-                src = img.attrs['src']
-                srcx = src.rsplit('.', 1) # could use os.basaname maybe
-                itype = srcx[1].lower() # image type (from file name)
-                if len(srcx)!=2 or itype not in ["jpg", "png"]:
-                    print("  ", img, "not embedded!")
-                    continue
-                if os.path.isfile(src): # should use URL
-                    print("  Embed img", src)
-                    with open(src, mode='rb') as imgx:
-                        imgdata = imgx.read()
-                    img.attrs['src'] = "data:image/"+itype+";base64,"+base64.standard_b64encode(imgdata).decode()
-    
-        # there should be an option to embed <script src="filename" ...> and <link rel="stylesheet" href="filename"> files as well ...
+    print("look for embedding files *********************************************")
+    # embed image files before output is done.
+    for img in (x for x in doc.body.find_all("img") if 'src' in x.attrs):
+        if "src" in img.attrs:
+            src = img.attrs['src']
+            srcx = src.rsplit('.', 1) # could use os.basename maybe
+            itype = srcx[1].lower() # image type (from file name)
+            if len(srcx)!=2 or itype not in ["jpg", "png"]:
+                print("  ", img, "not embedded!")
+                continue
+            em, imgdata = getsrc(src, args.embed, mode='rb')
+            if em:
+                print("  Embed img", src)
+                img.attrs['src'] = "data:image/"+itype+";base64,"+base64.standard_b64encode(imgdata).decode()
 
-        def embedlink(t):
-            # note: t["rel"] returns a list
-            return t.has_attr("href") and "stylesheet" in t.attrs.get("rel",[])
-        txt = None
-        for rtag in (x for x in doc.head.find_all("link") if embedlink(x)):
+    # there should be an option to embed <script src="filename" ...> and <link rel="stylesheet" href="filename"> files as well ...
+
+    def embedlink(t):
+        # note: t["rel"] returns a list
+        return t.has_attr("href") and "stylesheet" in t.attrs.get("rel",[])
+    txt = None
+    for rtag in (x for x in doc.head.find_all("link") if embedlink(x)):
+        em, txt = getsrc(rtag["href"], args.embed)
+        if em:
             print("  Embed link ", rtag["href"])
             rtag.name = "style"
-            txt = getsrc(rtag["href"])
             rtag.append("\n"+txt)
             rtag["type"] = "text/css"
             del rtag["rel"]
             del rtag["href"]
 
-        for rtag in (x for x in doc.find_all("script") if x.has_attr("src")):
-            if rtag["src"].rsplit('/', 1)[-1].startswith('snd-'):
+    for rtag in (x for x in doc.find_all("script") if x.has_attr("src")):
+        efn = rtag["src"].rsplit('/', 1)[-1]
+        if efn.startswith('snd-'):
+            if os.path.isfile(rtag["src"]):
                 print("embedding snd-?.js does not work (without a local /js directory for all the abs2svg stuff.)")
-                if args.playback:
-                    rtag.remove()
-                    print(rtag, "removed.")
+            if args.playback and args.embed:
+                print("removing", rtag)
+                rtag.remove()
                 continue
-            # embed external content and remove src attribute
+        # embed external content and remove src attribute
+        em, txt = getsrc(rtag["src"], args.embed)
+        if em:
+            if any(efn.startswith(fn) for fn in ["abc2svg", "tmcore"]):
+                txt = txt.replace("MIDI:{},", "") # fix loading of MIDI 
+                print("fixing MIDI call when emdedding ...")
             print("  Embed script ", rtag["src"])
-            txt = "\n"+getsrc(rtag["src"]).replace("'</script>", "'<'+'/script>") # break the string up so HTML loading works
+            txt = "\n"+txt.replace("'</script>", "'<'+'/script>") # break the string up so HTML loading works
             rtag.append(txt)
             del rtag["src"]
-        del txt
-    
+    del txt
+
     print("Output sent to", target)
     with open(target, "w") as dst:
         print(doc, file=dst)    # doc is BeautifulSoup so that does all the work here.
