@@ -11,11 +11,13 @@ The main feature is that it adds optional indices of the tunes that are click-ab
 
 The HTML output relies on *[abc2svg](https://chiselapp.com/user/moinejf/repository/abc2svg/doc/trunk/README.md)* or *txtmus* software to render the music as the HTML loads into the browser. the *abc2svg* version allows dynamic playing of tunes when connected to the internet (it needs to load extra modules dynamically). 
 
+Note: using *abc2svg* means that the book can provide chord charts instead of music notation.
+
 The output HTML (tune or song books) can use links, which keeps the HTML file small but relies on having a network connection, or embed Javascript in the file so it can be used without a network connection.
 
 This software has the notion of tune sets. Currently, sets are separated by %%newpage or %%sep directives (%%newpage after a set, %%sep after a single tune) in the ABC file (this may change - we may choose to use a separate set description file so ABC files are more standard).
 
-The software can optionally add:
+The software can add (via command line options):
 - Contents list
 - title index
 - tunes by rhythm type
@@ -52,6 +54,7 @@ Note: load CSV files into MS Excel as separate data as just loading CSV can conv
 - create examples with shell scripts (example templates, abc files (with ABC header)) in the examples folder/directory.
 - *abcextract.py* should work from either CSV of XLSX file 
 - embed HTML in ABC files - including image insertion - test does %%beginml work?
+- consider a button to load snd-?.js dynamically into the HTML
 - 'to do' in abcsvg.py
 - figure out a good/easy way to let users choose music or *abc2svg* %%grid or %%grid2 charts.
 - work out what MIDI playback works with *abc2svg* and *txtmus*
