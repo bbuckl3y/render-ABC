@@ -4,7 +4,7 @@
 
 Software to render/merge ABC library files with HTML templates.
 
-#abcsvg.py
+#addsvg.py
 
 This is a script for merging the contents of a ABC music notation file with a HTML template to create a HTML music book that can be used at a gig or for "printing" a PDF file or a paper copy.
 The main feature is that it adds optional indices of the tunes that are click-able to go to the tunes. 
@@ -49,6 +49,10 @@ Create extract.csv list from an ABC library of the whole library.
 
 Note: load CSV files into MS Excel as separate data as just loading CSV can convert sets to dates (MS Excel converts set 5-6-7 to date 5-JUN-2007). In Excel use Data>Get Data>From File and choose Text/CSV import option. Do not use the "transform data" import option.
 
+#rawsvg.py
+
+Basic use of *abc2svg/txtmus* for a ABC library - user interface from *abcweb1-1.js* (or *tmweb1-2.js*)
+
 #To do
 
 - maybe, detect some selected *abc2svg* modules and preload them? e.g. the MIDI module and selected sound modules.
@@ -60,4 +64,4 @@ Note: load CSV files into MS Excel as separate data as just loading CSV can conv
 - figure out a good/easy way to let users choose music or *abc2svg* %%grid or %%grid2 charts.
 - work out what MIDI playback works with *abc2svg* and *txtmus*
 - convert songs from text with lines like "[G]I got the Blues [C]in the morning" to a chart with chords above the words.
-
+- merge *addsvg.py* and *rawsvg.py*

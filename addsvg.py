@@ -10,13 +10,20 @@ Fixed formatting - Dec 2025 and Jan 2026
 @author: Bob Buckley
 
 to do:
-* always embed local files (e.g. local CSS) - they are not copied with the HTML output
 * title and front-matter files from command line so more generic templates can be provided
 * meta tag follows last meta tag or preceeds title tag in template
 * develop options for an optional *provenance* section at the end of the tune book 
+* maybe have names for sets (maybe a separate data file ... with names for sets ... and full set playback)
+* image file source from command line
+* unify adding abc2svg.js source code 
+* merge -r raw option?
+* embed %%MIDI stuff - fix embedding MIDI.js and sound files
+* local version  of javascript files (alternative to embedding)? Copy from URL to local location for local access during use?
 """
 
-# This code embeds image files so that we end up with a single HTML file.
+# This code embeds image files and other file types so that we end up with a single HTML file.
+# -e option keeps remote URLs ... which means smaller file and playback (needs dynamic loading) works
+# -p omits playback capability
 
 import os
 import re
@@ -139,8 +146,8 @@ def getsrc(src, embed, mode="rt"):
 def main():
     """
     input files x.abc and x.xhtml
-    Add indices
-    Output x.idx.xhtml
+    Add indices and abc2svg/txtmus Javascript ... if required
+    Output to target
     """
     global doc, body0, nblk
     global x2page
@@ -181,20 +188,16 @@ def main():
     body = doc.body
     for body0 in body.children:
         pass
-    # should check there are "style" tags - could insert after last "meta" tag
+    # create <meta content-"abcsvg" name="generator"> tag for insertion
     nt = doc.new_tag("meta", content="abcsvg") # BS4 fails with name="xxx" argument
     nt["name"]="generator"
 
-    # find last <meta> tag
-    if doc.head.title:
-        # insert <meta> before <title> ... if title is present
-        lastmetatag = doc.head.title.previous_sibling
-    else:
-        for lastmetatag in doc.head.find_all("meta"):
-            pass
-        else:        
-            lastmetatag = doc.head.contents[0] # if no <meta> tags
-
+    # insert <meta> after last <meta>, before <title> ... or at the start of <head>
+    for lastmetatag in doc.head.find_all("meta"):
+        pass
+    else:         
+        lastmetatag = doc.head.title.previous_sibling if doc.head.title else doc.head.contents[0]
+    
     lastmetatag.insert_after("\n") # add linebreak after new tag
     lastmetatag.insert_after(nt)
 
@@ -240,18 +243,18 @@ def main():
         abcsect.append(hdrdiv)
         abcsect.append("\n")
 
-    tfix = re.compile(r'^T:\s*-')
+    tfix = re.compile(r'^T:\s*-') # titles starting with a minus sign (omitted from indices)
     for sset, nset in zip(ss.sets, ss.sets[1:]+[[]]):
         svgid = sset[0].id()
 
         newtag = doc.new_tag("div", id=svgid)
         newtag.append("\n  ")
-        newtag["class"] = "abcdiv"+(' sp' if len(sset)>1 else '')
+        newtag["class"] = "abcdiv"+(' sp' if len(sset)>1 else '') # sets get sp class, os a separate page in CSS
         newtag.append(doc.new_tag("script", type="text/vnd.abc"))
         # remove - from T: lines when present (leading minus means omit title from index)
         # %%MIDI commands in songs screw up abc2svg playback
         xlines = '\n'.join('X: '+s.xid+"\n"+''.join(tfix.sub('T:', x)+"\n" for x in s.lines if not x.startswith('%%MIDI')) for s in sset)
-        newtag.script.string =  xlines + ("\n%%sep\n\n" if len(nset)==1 else "\n")
+        newtag.script.string =  xlines + ("\n%%sep\n\n" if len(sset)==1 and len(nset)==1 else "\n")
         newtag.append("\n")
         abcsect.append(newtag)
         abcsect.append("\n")
@@ -331,29 +334,48 @@ def main():
             print("uses scripts:", ssrcs)
             print("-1 -2 --abc2svg, --txtmus are not allowed.")
             exit(1)
-    elif args.abc2svg:
-        print(" ... adding abc2svg Javascript.")
-        body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/abc2svg-1.js", defer=""))
-        body.append("\n")
-        body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/abcweb-1.js", defer=""))
-        body.append("\n")
+    
+    if args.abc2svg:
+        jslist = ["http://moinejf.free.fr/js/abc2svg-1.js", 
+                  "http://moinejf.free.fr/js/abcweb-1.js"]
         if args.playback:
-            print(" ... and snd-1.js playback.")
-            body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/snd-1.js", defer=""))
-            body.append("\n")
+            jslist.append("http://moinejf.free.fr/js/snd-1.js")
     elif args.txtmus:
-        print(" ... adding txtmus Javascript.")
-        body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/tmcore-2.js", defer=""))
-        body.append("\n")
-        body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/tmweb-2.js", defer=""))
-        body.append("\n")
+        jslist = ["http://moinejf.free.fr/js/tmcore-2.js",
+                  "http://moinejf.free.fr/js/tmweb-2.js"]
         if args.playback:
-            print(" ... and snd-2.js playback.")
-            body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/snd-2.js", defer=""))
-            body.append("\n")
+            jslist.append("http://moinejf.free.fr/js/snd-2.js")
     else:
-        print("Bad abc2svg or txtmus - js scripts:", [z for z in (x.rsplit('/',1)[-1] for x in doc.head.find_all("script") if x.has_attr("src"))])
-        exit(1)
+        jslist =[]
+    
+    for js in jslist:
+        print(" ... adding <script src={0}>".format(js))
+        body.append(doc.new_tag("script", src=js, defer=""))
+        body.append("\n")
+
+    # if args.abc2svg:
+    #     print(" ... adding abc2svg Javascript.")
+    #     body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/abc2svg-1.js", defer=""))
+    #     body.append("\n")
+    #     body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/abcweb-1.js", defer=""))
+    #     body.append("\n")
+    #     if args.playback:
+    #         print(" ... and snd-1.js playback.")
+    #         body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/snd-1.js", defer=""))
+    #         body.append("\n")
+    # elif args.txtmus:
+    #     print(" ... adding txtmus Javascript.")
+    #     body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/tmcore-2.js", defer=""))
+    #     body.append("\n")
+    #     body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/tmweb-2.js", defer=""))
+    #     body.append("\n")
+    #     if args.playback:
+    #         print(" ... and snd-2.js playback.")
+    #         body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/snd-2.js", defer=""))
+    #         body.append("\n")
+    # else:
+    #     print("Bad abc2svg or txtmus - js scripts:", [z for z in (x.rsplit('/',1)[-1] for x in doc.head.find_all("script") if x.has_attr("src"))])
+    #     exit(1)
 
     print("look for embedding files *********************************************")
     # embed image files before output is done.
@@ -399,7 +421,7 @@ def main():
         em, txt = getsrc(rtag["src"], args.embed)
         if em:
             if any(efn.startswith(fn) for fn in ["abc2svg", "tmcore"]):
-                txt = txt.replace("MIDI:{},", "") # fix loading of MIDI 
+                txt = txt.replace("MIDI:{},", "") # fix loading of MIDI - doesn't work when embedded
                 print("fixing MIDI call when emdedding ...")
             print("  Embed script ", rtag["src"])
             txt = "\n"+txt.replace("'</script>", "'<'+'/script>") # break the string up so HTML loading works
