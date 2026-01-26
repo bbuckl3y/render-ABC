@@ -170,12 +170,13 @@ def main():
     p.add_argument('--all', action='store_true', help="index all titles")
     p.add_argument("-P", '--pavindex', action='store_true', help="index of singers (%p:v in ABC)")
     p.add_argument("-d", '--danceindex', action='store_true', help="include 'dance index' for set dance tunes")
+    p.add_argument("-G", '--grid2', action='store_true', help="use %%grid2 1 to present chord charts, not music")
     p.add_argument('-o', '--output', help="output/target filename")
     xgrp = p.add_mutually_exclusive_group()
     xgrp.add_argument("-1", "--abc2svg", action='store_true', help="include abc2svg javascipt")
     xgrp.add_argument("-2", "--txtmus",  action='store_true', help="include txtmus javascipt")
     # p.add_argument("-s", '--style', type=argparse, help="CSS file to be included")
-    p.add_argument("-f", "--template", default="abcsvg.htm", help="HTML template")
+    p.add_argument("-f", "--template", default="abcsvg.htm", help="HTML template (default is abcsvg.htm)")
     p.add_argument('file', help="name of ABC file")
     args = p.parse_args(sys.argv[1:])
     
@@ -215,13 +216,11 @@ def main():
     else:
         print("****** date not set ***********")
     nblk = body.find(id="nblist")
-    # if nblk:
-    #     nblk.insert(1, "  ")
 
     print("reading", fnsrc)
 
     # read the ABC file into a Songsets class
-    ss = ABClib.Songsets(fnsrc)
+    ss = ABClib.Songsets(fnsrc, midi=args.playback)
     # print(len(ss.sets), "sets found.")
     abcs = tuple(ss.abcs()) # songlist rather than list of sets
     print(len(abcs), "songs/tunes in", len(ss.sets), "sets.")
@@ -232,6 +231,8 @@ def main():
     x2page =dict((x.xid, s[0].id()) for s in ss.sets for x in s)
     abcsect = body # could be different
     if ss.hdr:
+        if args.grid2:
+            ss.hdr.append("%%grid2 1")
         # we leave %%MIDI lines in the header/parameters block - they should be OK there - just keep it simple
         abcstr = "".join(t+"\n" for t in ss.hdr+[''])
         newtag = doc.new_tag("script", type="text/vnd.abc")
@@ -335,6 +336,7 @@ def main():
             print("-1 -2 --abc2svg, --txtmus are not allowed.")
             exit(1)
     
+    jsdir = "http://moinejf.free.fr/js" # should be argument - not yet used
     if args.abc2svg:
         jslist = ["http://moinejf.free.fr/js/abc2svg-1.js", 
                   "http://moinejf.free.fr/js/abcweb-1.js"]
@@ -348,34 +350,13 @@ def main():
     else:
         jslist =[]
     
+    if args.grid2:
+        jslist.append("/home/bobb/mywin/OneDrive/Documents/GitHub/render-ABC/gchordfix.js")
+    
     for js in jslist:
         print(" ... adding <script src={0}>".format(js))
         body.append(doc.new_tag("script", src=js, defer=""))
         body.append("\n")
-
-    # if args.abc2svg:
-    #     print(" ... adding abc2svg Javascript.")
-    #     body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/abc2svg-1.js", defer=""))
-    #     body.append("\n")
-    #     body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/abcweb-1.js", defer=""))
-    #     body.append("\n")
-    #     if args.playback:
-    #         print(" ... and snd-1.js playback.")
-    #         body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/snd-1.js", defer=""))
-    #         body.append("\n")
-    # elif args.txtmus:
-    #     print(" ... adding txtmus Javascript.")
-    #     body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/tmcore-2.js", defer=""))
-    #     body.append("\n")
-    #     body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/tmweb-2.js", defer=""))
-    #     body.append("\n")
-    #     if args.playback:
-    #         print(" ... and snd-2.js playback.")
-    #         body.append(doc.new_tag("script", src="http://moinejf.free.fr/js/snd-2.js", defer=""))
-    #         body.append("\n")
-    # else:
-    #     print("Bad abc2svg or txtmus - js scripts:", [z for z in (x.rsplit('/',1)[-1] for x in doc.head.find_all("script") if x.has_attr("src"))])
-    #     exit(1)
 
     print("look for embedding files *********************************************")
     # embed image files before output is done.

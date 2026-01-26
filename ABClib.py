@@ -208,7 +208,7 @@ class ABCsong(Song):
 
 class Songsets:
 
-    def __init__(self, fn):
+    def __init__(self, fn, midi=True):
         """
         Read an ABC file whose name is fn
         
@@ -221,7 +221,9 @@ class Songsets:
         
         with open(fn, 'rt') as src:
             orig = src.read()+'\n' # extra newline fixes final %%newpage
-            orig = re.sub(r'\s+$', '', orig) # remove trailing space in all lines
+            if not midi:
+                orig = re.sub("\n%%MIDI.*\n", "\n", orig) # remove all MIDI lines - not able to play
+            orig = re.sub(r'[ \t]+\n', '\n', orig) # remove trailing space in all lines
             txtpat = re.compile(r'%%begintext(([^%]|%(?!%end))*)', flags=re.MULTILINE)
             txtblks = txtpat.findall(orig)                  # find and remember all %%(begin|end)text blocks
             lines = txtpat.subn('%%begintextx', orig)[0]    # replace all text blocks
@@ -234,10 +236,12 @@ class Songsets:
             setpat = re.compile(r'\n%%\s*(newpage|sep)\s*\n', flags=re.IGNORECASE|re.UNICODE|re.MULTILINE)
             settmp = setpat.split(lines)[0::2]
             inp = [z for z in map(lambda x: x.strip(), settmp) if z]
-        self.hdr = None
+
         if inp and inp[0].startswith("%abc"): # deal with ABC header if there is one
             hdr, inp[0] = inp[0].split("\n\n", 1)
             self.hdr = hdr.splitlines()
+        else:
+            self.hdr = "%abc-2.1" # an assumption!
         sss = ((songfix(x).strip().splitlines() for x in xs.strip().split('\n\n')) for xs in inp if xs)
         # fails with multiple blank lines between songs - should use groupby()
         # drop empty X: songs - they are fillers for later use
