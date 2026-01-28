@@ -59,7 +59,7 @@ def addindex(iname, items, sort=True, breakat=[], nochords=False):
     didiv.div.append("\n")
     didiv.div["class"] = ('colidx nochords' if nochords else 'colidx chords')
 
-    xbreakat = [([y.strip() for y in x.split(".",1)]+[""])[:2] for x in breakat]
+    xbreakat = [(".".join([y.strip() for y in x.split(".",1)]+[""])) for x in breakat]
 
     idxname = iname.replace(' ', '').lower()
     didiv["id"] = idxname
@@ -70,12 +70,22 @@ def addindex(iname, items, sort=True, breakat=[], nochords=False):
     else:
         idxs = items
     print(" ... adding "+iname+".", len(idxs), 'items.')
+    if breakat:
+        print("Looking for breaks at", breakat, xbreakat)
     pcat = None
     for idx in idxs:
+        def isBreak(xid, ts, bs):
+            if any(x.startswith(xid+'.') for x in bs):
+                print(iname+': xid match', xid, bs)
+            t = xid+'.'+(ts if type(ts) is str else ts[0])
+            if xid in ['159', '170']:
+                print("==== comparing:", t, bs)
+            return any(t.startswith(x) for x in bs)
         cat, dn, xid, ktag = idx[0], idx[1], idx[2], idx[3] if len(idx)>3 else ''
         # some indices are too long ... so break them into sections to navigation at the top of the page does not overlap
-        if any((xid==x[0] and dn.startswith(x[1])) for x in xbreakat): # add start of title check later
-            print("in", iname, "break at", xid+". "+dn)
+        #if any((xid==x[0] and dn.startswith(x[1])) for x in xbreakat): # add start of title check later
+        if breakat and isBreak(xid, dn, xbreakat):
+            print("in", iname, "break at", xid+". "+(dn if type(dn) is str else dn[0]))
             didiv = doc.new_tag("div", attrs={'class': 'section index'})
             #didiv["class"] = "section index"
             didiv.append(doc.new_tag("h1"))
@@ -159,11 +169,11 @@ def main():
     p.add_argument("-e", '--embed', action='store_false', help="do not embed <link href...> and <script src=...> in a single file - used for quicker testing")
     p.add_argument("-p", "--playback", action="store_false", help="do not include snd-?.js for playback")
     p.add_argument("-c", '--contents', action='store_false', help="contents index (one page)")
-    p.add_argument("-C", '--contentsx', help="break Contents index at 'X. title, X. title'")
-    p.add_argument("-t", '--titles', action='store_false', help="Titles index (one page)")
-    p.add_argument("-T", '--titlesx', help="Titles index with breaks at 'X. title, X. title'")
+    p.add_argument("-C", '--contentsx', help="break Contents index at 'title, title'")
     p.add_argument("-b", '--byrhythm', action='store_false', help="index (one page)")
     p.add_argument("-B", '--byrhythmx', help="Tune by rhythm index with breaks at 'X. title, X. title'")
+    p.add_argument("-t", '--titles', action='store_false', help="Titles index (one page)")
+    p.add_argument("-T", '--titlesx', help="Titles index with breaks at 'X. title, X. title'")
     p.add_argument("-r", '--rhythmsetindex', action='store_true', help="add index of sets by rhythm")
     p.add_argument("-g", '--singleindex', action='store_true', help="include single tune index (tunes that are not in sets) by rhythm")
     p.add_argument("-a", '--alphasetindex', action='store_true', help="set index sorted by name of first tune")
@@ -230,46 +240,56 @@ def main():
     # step through adding songsets ABC into HTML
     x2page =dict((x.xid, s[0].id()) for s in ss.sets for x in s)
     abcsect = body # could be different
-    if ss.hdr:
-        if args.grid2:
-            ss.hdr.append("%%grid2 1")
-        # we leave %%MIDI lines in the header/parameters block - they should be OK there - just keep it simple
-        abcstr = "".join(t+"\n" for t in ss.hdr+[''])
-        newtag = doc.new_tag("script", type="text/vnd.abc")
-        newtag["class"] = "parm"
-        newtag.string = abcstr
-        hdrdiv = doc.new_tag("div", style="visibility: hidden; display:inline; height: 0px;")
-        hdrdiv.append(newtag)
-        hdrdiv.append("\n")
-        abcsect.append(hdrdiv)
-        abcsect.append("\n")
-
+   
+    # add the ABC data into the HTML
     tfix = re.compile(r'^T:\s*-') # titles starting with a minus sign (omitted from indices)
+    hdr = ss.hdr
     for sset, nset in zip(ss.sets, ss.sets[1:]+[[]]):
         svgid = sset[0].id()
 
         newtag = doc.new_tag("div", id=svgid)
         newtag.append("\n  ")
         newtag["class"] = "abcdiv"+(' sp' if len(sset)>1 else '') # sets get sp class, os a separate page in CSS
-        newtag.append(doc.new_tag("script", type="text/vnd.abc"))
+        if hdr:
+            if args.grid2:
+                hdr.append("%%grid2 1")
+            # we leave %%MIDI lines in the header/parameters block - they should be OK there - just keep it simple
+            hdrstr = "".join(t+"\n" for t in hdr+[''])
+            hdrdiv = doc.new_tag("script", type="text/vnd.abc")
+            hdrdiv.string = hdrstr
+            newtag.append(hdrdiv)
+            newtag.append("\n")
+            hdr = None
+        scr = doc.new_tag("script", type="text/vnd.abc")
         # remove - from T: lines when present (leading minus means omit title from index)
         # %%MIDI commands in songs screw up abc2svg playback
         xlines = '\n'.join('X: '+s.xid+"\n"+''.join(tfix.sub('T:', x)+"\n" for x in s.lines if not x.startswith('%%MIDI')) for s in sset)
-        newtag.script.string =  xlines + ("\n%%sep\n\n" if len(sset)==1 and len(nset)==1 else "\n")
+        scr.string =  xlines + ("\n%%sep\n\n" if len(sset)==1 and len(nset)==1 else "\n")
+        newtag.append(scr)
         newtag.append("\n")
         abcsect.append(newtag)
         abcsect.append("\n")
+        # should add non-printing %%seps around sets - sets on separate pages - HTML doesn't show page breaks. 
+        if len(nset)>0 and not(len(sset)==1 and len(nset)==1):
+            newtag = doc.new_tag("div")
+            newtag["class"] = "nop"
+            newtag.append(doc.new_tag("script", type="text/vnd.abc"))
+            newtag.script.string = "\n%%sep\n\n"
+            newtag.append("\n  ")
+            abcsect.append(newtag)
                                    
     # add tune index
     # omit titles with '-' at start
    
     if args.contents or args.contentsx:
-        # add Table of Contents - only the first title of athe tune - in the order they appear
-        cx = [('', x.title(fix=True), x.xid, x.key()) for x in abcs]
+        # add Table of Contents - only the first title of a tune - in the order they appear
+        # cx = [('', x.title(fix=True), x.xid, x.key()) for x in abcs]
+        # note: context index shows sets
+        cx = [('', [x.title(fix=True)+' ('+x.key()+')' for x in s], s[0].xid, '') for s in ss.sets]
         # just does Xids for now - add title prefixes later
         breakat = [x.strip() for x in args.contentsx.split(',')] if args.contentsx else []
         # print("Contents breakat =", breakat)
-        addindex("Contents", cx, sort=False, breakat=breakat)
+        addindex("Contents", cx, sort=False, breakat=breakat, nochords=True)
 
     if args.titles or args.titlesx:
         # index all tune titles, not just the first title (unless dropped - start with minus) - in alphabetic order of titles
@@ -393,7 +413,7 @@ def main():
         efn = rtag["src"].rsplit('/', 1)[-1]
         if efn.startswith('snd-'):
             if os.path.isfile(rtag["src"]):
-                print("embedding snd-?.js does not work (without a local /js directory for all the abs2svg stuff.)")
+                print("embedding snd-?.js does not work (without a local /js directory for all the abc2svg stuff.)")
             if args.playback and args.embed:
                 print("removing", rtag)
                 rtag.remove()

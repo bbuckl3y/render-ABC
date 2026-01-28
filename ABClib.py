@@ -242,10 +242,10 @@ class Songsets:
             self.hdr = hdr.splitlines()
         else:
             self.hdr = "%abc-2.1" # an assumption!
-        sss = ((songfix(x).strip().splitlines() for x in xs.strip().split('\n\n')) for xs in inp if xs)
+        sss = ([songfix(x).strip().splitlines() for x in xs.strip().split('\n\n')] for xs in inp if xs)
         # fails with multiple blank lines between songs - should use groupby()
         # drop empty X: songs - they are fillers for later use
-        self.sets = [[ABCsong(x) for x in ss if len(x)>1] for ss in sss if ss] # drop empty sets and tunes
+        self.sets = [[ABCsong(x) for x in ss if len(x)>1] for ss in sss if len(ss)] # drop empty sets and tunes
         
         return
     

@@ -8,3 +8,4 @@ gchordFix = function (e) {
     // console.log(cnt+" slurs removed from chord charts.")
     // console.log("did gchordFix()")
 }
+ 

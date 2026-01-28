@@ -175,7 +175,8 @@ def main():
                 print("embedding snd-?.js does not work (without a local /js directory for all the abs2svg stuff.)")
             if args.playback and args.embed:
                 print("removing", rtag)
-                rtag.remove()
+                if rtag: 
+                    rtag.remove()
                 continue
         # embed external content and remove src attribute
         em, txt = getsrc(rtag["src"], args.embed)

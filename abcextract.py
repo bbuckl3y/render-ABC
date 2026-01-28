@@ -27,8 +27,8 @@ def main():
     assert wb.endswith(".xlsx")
     assert fd.endswith(".abc")
 
-    ss=ABClib2.Songsets(fn)
-    td = ABClib2.abcdict(ss.abcs()) # read tune dictionary
+    ss=ABClib.Songsets(fn)
+    td = ABClib.abcdict(ss.abcs()) # read tune dictionary
     hdr = ss.hdr
     ss = None
     
@@ -43,7 +43,7 @@ def main():
 
     # separators - %%newpage before and after a set, %%sep between single tunes
     seps = [ "\n\n%%newpage\n" if any(len(x)>1 for x in xs) else "\n\n%%sep\n" for xs in zip(setlist, setlist[1:]) ]+[""]
-        
+    
     with open(fd, "tw") as dst:
         for l in hdr:# write ABC file header
             dst.write(l)
@@ -60,6 +60,7 @@ def main():
                     print('tune', tasc, 'not in ABC file.')
             if s:
                 dst.write(s)
+        dst.write('\n\n')
     return
 
 if __name__=="__main__":
