@@ -50,6 +50,17 @@ def addindex(iname, items, sort=True, breakat=[], nochords=False):
     We should probably send the link ID rather than using the global x2page
     """
     global doc, body0, nblk, x2page
+
+    idxname = iname.replace(' ', '').lower()
+    if nblk:
+        print(" ... adding", iname, "link to Nav Block.")
+        bx = doc.new_tag("span")
+        bx.append(doc.new_tag("a", href="#"+idxname))
+        bx.a.string = iname
+        nblk.append(bx)
+        bx.insert_after("\n")
+        bx.insert_before("  ")
+    
     didiv = doc.new_tag("div")
     didiv["class"] = "section index"
     didiv.append("\n    ")
@@ -59,9 +70,10 @@ def addindex(iname, items, sort=True, breakat=[], nochords=False):
     didiv.div.append("\n")
     didiv.div["class"] = ('colidx nochords' if nochords else 'colidx chords')
 
-    xbreakat = [(".".join([y.strip() for y in x.split(".",1)]+[""])) for x in breakat]
+    # xbreakat = [(".".join([y.strip() for y in x.split(".",1)]+[""])) for x in breakat]
+    xbreakat = [('' if x[2] is None else x[2], x[3]) for x in map(lambda z: re.match(r'^((\d+)\.?)?\s*(.*)', z), breakat)]
 
-    idxname = iname.replace(' ', '').lower()
+
     didiv["id"] = idxname
     didiv.h1.string = iname
     body0.insert_before(didiv)
@@ -69,23 +81,16 @@ def addindex(iname, items, sort=True, breakat=[], nochords=False):
         idxs = sorted(items, key=lambda x:(x[0], x[1].lower() if type(x[1]) is str else x[1], int(x[2])))
     else:
         idxs = items
-    print(" ... adding "+iname+".", len(idxs), 'items.')
-    if breakat:
-        print("Looking for breaks at", breakat, xbreakat)
     pcat = None
     for idx in idxs:
         def isBreak(xid, ts, bs):
-            if any(x.startswith(xid+'.') for x in bs):
-                print(iname+': xid match', xid, bs)
-            t = xid+'.'+(ts if type(ts) is str else ts[0])
-            if xid in ['159', '170']:
-                print("==== comparing:", t, bs)
-            return any(t.startswith(x) for x in bs)
+            t = ts if type(ts) is str else ts[0]
+            return any((not x[0] or xid==x[0]) and t.startswith(x[1]) for x in bs)
         cat, dn, xid, ktag = idx[0], idx[1], idx[2], idx[3] if len(idx)>3 else ''
         # some indices are too long ... so break them into sections to navigation at the top of the page does not overlap
         #if any((xid==x[0] and dn.startswith(x[1])) for x in xbreakat): # add start of title check later
         if breakat and isBreak(xid, dn, xbreakat):
-            print("in", iname, "break at", xid+". "+(dn if type(dn) is str else dn[0]))
+            print("       break at", (xid, (dn if type(dn) is str else dn[0])))
             didiv = doc.new_tag("div", attrs={'class': 'section index'})
             #didiv["class"] = "section index"
             didiv.append(doc.new_tag("h1"))
@@ -127,15 +132,6 @@ def addindex(iname, items, sort=True, breakat=[], nochords=False):
             x = bs4.BeautifulSoup("<div>"+dnstr+"</div>", 'lxml') 
             a.append(x.body.div)
         idxitm.append(a) # as in template and its CSS
-
-    if nblk:
-        print(" ... adding", iname, "link to Nav Block.")
-        bx = doc.new_tag("span")
-        bx.append(doc.new_tag("a", href="#"+idxname))
-        bx.a.string = iname
-        nblk.append(bx)
-        bx.insert_after("\n")
-        bx.insert_before("  ")
 
     return
 
