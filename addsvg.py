@@ -235,7 +235,10 @@ def main():
     print("Found", len(ss.sets), "sets in", fnsrc)
     # step through adding songsets ABC into HTML
     x2page =dict((x.xid, s[0].id()) for s in ss.sets for x in s)
-    abcsect = body # could be different
+    abcsect = body.find(id='abcsect')
+    if abcsect==None: 
+        abcsect = body 
+    body0 = abcsect.previous_element
    
     # add the ABC data into the HTML
     tfix = re.compile(r'^T:\s*-') # titles starting with a minus sign (omitted from indices)
